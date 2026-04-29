@@ -10,6 +10,14 @@ def test_home_route():
     client = app.test_client()
     response = client.get("/")
     assert response.status_code == 200
+    assert "Version 1.0" in response.get_data(as_text=True)
+
+
+def test_version_route():
+    client = app.test_client()
+    response = client.get("/version")
+    assert response.status_code == 200
+    assert response.get_json()["version"] == "1.0"
 
 
 def test_members_route():

@@ -1,0 +1,107 @@
+# A/B Testing Deployment Strategy
+# Route specific users or traffic percentages to different versions
+# Compare performance metrics between versions
+# Uses Ingress with traffic splitting
+
+# Version A (Control group)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-fitness-v1
+  labels:
+    app: aceest-fitness
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aceest-fitness
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: aceest-fitness
+        version: v1
+    spec:
+      containers:
+      - name: aceest-fitness
+        image: aceestregistry.azurecr.io/aceest-fitness:v1.0
+        ports:
+        - containerPort: 5000
+        env:
+        - name: VERSION
+          value: "v1-control"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+# Version B (Test group)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-fitness-v2
+  labels:
+    app: aceest-fitness
+    version: v2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aceest-fitness
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: aceest-fitness
+        version: v2
+    spec:
+      containers:
+      - name: aceest-fitness
+        image: your-dockerhub-username/aceest-fitness:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: VERSION
+          value: "v2-test"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+# Service for Version A
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-fitness-v1-svc
+spec:
+  selector:
+    app: aceest-fitness
+    version: v1
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
+
+---
+# Service for Version B
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-fitness-v2-svc
+spec:
+  selector:
+    app: aceest-fitness
+    version: v2
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP

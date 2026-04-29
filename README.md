@@ -47,7 +47,60 @@ This project demonstrates a complete DevOps pipeline for a Flask-based fitness m
 
 ## ⚙️ Local Setup
 
-###  Clone Repository
+### Prerequisites
+- Python 3.11+
+- Docker Desktop
+- Jenkins (installed locally or on a server)
+- Minikube or Kubernetes cluster
+- SonarQube (optional for code quality)
+
+### Installation Steps
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/2022us70029-lab/ACEest-Fitness-Gym.git
+   cd ACEest-Fitness-Gym
+   ```
+
+2. **Install Python Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run Tests**
+   ```bash
+   python -m pytest tests/
+   ```
+
+4. **Build Docker Image**
+   ```bash
+   docker build -t 2022us70029/aceest-fitness-gym:latest .
+   ```
+
+5. **Run Locally**
+   ```bash
+   python app.py
+   # or with Docker
+   docker run -p 5000:5000 aceest-fitness:latest
+   ```
+
+### Jenkins Setup
+1. Install Jenkins from https://www.jenkins.io/download/
+2. Start Jenkins and access at http://localhost:8080
+3. Install required plugins: Docker, Kubernetes, etc.
+4. Create a new pipeline job and point to the Jenkinsfile in the repo.
+
+### Kubernetes Deployment
+1. Install Minikube: https://minikube.sigs.k8s.io/docs/start/
+2. Start Minikube: `minikube start`
+3. Deploy: `kubectl apply -f k8s-deployment.yaml`
+
+### SonarQube Integration
+1. Install SonarQube locally or use cloud version
+2. Add sonar-project.properties file
+3. Integrate into Jenkins pipeline
+
+---
 
 ```bash
 git clone https://github.com/2022us70029-lab/ACEest-Fitness-Gym.git

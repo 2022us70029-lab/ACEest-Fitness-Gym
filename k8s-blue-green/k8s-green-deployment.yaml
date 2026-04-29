@@ -1,0 +1,54 @@
+# Green Deployment for Blue-Green Strategy
+# This deployment is used as the 'green' environment in blue-green deployments.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-fitness-green
+  labels:
+    app: aceest-fitness
+    version: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aceest-fitness
+      version: green
+  template:
+    metadata:
+      labels:
+        app: aceest-fitness
+        version: green
+    spec:
+      containers:
+      - name: aceest-fitness
+        image: 2022us70029/aceest-fitness-gym:latest
+        ports:
+        - containerPort: 5000
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /version
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-fitness-green-svc
+spec:
+  selector:
+    app: aceest-fitness
+    version: green
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP

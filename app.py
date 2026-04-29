@@ -4,7 +4,11 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Welcome to ACEest Fitness & Gym"
+    return "Welcome to ACEest Fitness & Gym - Version 1.0"
+
+@app.route("/version")
+def version():
+    return jsonify({"version": "1.0"})
 
 @app.route("/members")
 def members():

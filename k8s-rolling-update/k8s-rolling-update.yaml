@@ -1,0 +1,59 @@
+# Rolling Update Deployment Strategy
+# Gradually replaces old pods with new pods
+# Ensures zero-downtime deployment
+# Built-in to Kubernetes Deployments
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-fitness
+  labels:
+    app: aceest-fitness
+spec:
+  replicas: 4
+  # Rolling update strategy configuration
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Maximum number of pods that can be created above desired count
+      maxUnavailable: 0  # Maximum number of pods that can be unavailable
+  selector:
+    matchLabels:
+      app: aceest-fitness
+  template:
+    metadata:
+      labels:
+        app: aceest-fitness
+    spec:
+      # Init container for pre-deployment checks
+      initContainers:
+      - name: init-check
+        image: busybox
+        command: ['sh', '-c', 'echo "Starting ACEest Fitness deployment..."']
+      
+      containers:
+      - name: aceest-fitness
+        image: 2022us70029/aceest-fitness-gym:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+          name: http
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /version
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
