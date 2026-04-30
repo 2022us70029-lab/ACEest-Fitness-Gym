@@ -2,98 +2,84 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REGISTRY = 'docker.io'
-        IMAGE_NAME = '2022us70029/aceest-fitness-gym'
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        DOCKER_HUB_REPO = '2022us70029/aceest-fitness-gym'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKER_IMAGE = "2022us70029/aceest-fitness-gym"
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                script {
-                    checkout([$class: 'GitSCM', 
-                        branches: [[name: '*/main']], 
-                        userRemoteConfigs: [[url: 'https://github.com/2022us70029-lab/ACEest-Fitness-Gym.git']]
-                    ])
-                }
+                checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                script {
-                    bat 'pip install -r requirements.txt'
+                bat 'python -m pip install -r requirements.txt'
+                bat 'python -m pip install pytest pytest-cov'
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                bat 'python -m pytest tests/ --junitxml=test-results.xml --cov=. --cov-report=xml'
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
                 }
             }
         }
 
-        stage('Code Quality - Lint') {
+        stage('SonarQube Analysis') {
             steps {
-                script {
-                    bat 'flake8 app.py --count --select=E9,F63,F7,F82 --show-source --statistics || exit 0'
+                withSonarQubeEnv('SonarQube') {
+                    bat '''
+                    sonar-scanner ^
+                    -Dsonar.projectKey=aceest-fitness ^
+                    -Dsonar.sources=. ^
+                    -Dsonar.host.url=http://host.docker.internal:9000 ^
+                    -Dsonar.login=%SONAR_TOKEN%
+                    '''
                 }
             }
         }
 
-        stage('Run Unit Tests') {
+        stage('Quality Gate') {
             steps {
-                script {
-                    bat 'python -m pytest tests/ -v'
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Docker Build & Push') {
             steps {
-                script {
-                    bat "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
-                    bat "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest"
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
-                        bat "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                        bat "docker push ${IMAGE_NAME}:latest"
-                    }
-                }
+                bat "docker build -t %DOCKER_IMAGE%:%BUILD_NUMBER% ."
+                bat "docker tag %DOCKER_IMAGE%:%BUILD_NUMBER% %DOCKER_IMAGE%:latest"
+                bat "echo %DOCKERHUB_CREDENTIALS_PSW% | docker login -u %DOCKERHUB_CREDENTIALS_USR% --password-stdin"
+                bat "docker push %DOCKER_IMAGE%:%BUILD_NUMBER%"
+                bat "docker push %DOCKER_IMAGE%:latest"
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    bat 'kubectl apply -f k8s-deployment.yaml'
-                    bat 'kubectl rollout status deployment/aceest-fitness-gym'
-                }
-            }
-        }
-
-        stage('Smoke Tests') {
-            steps {
-                script {
-                    bat 'timeout /t 10'
-                    bat 'powershell -Command "Invoke-WebRequest -Uri http://localhost:5000/version -ErrorAction Stop"'
-                }
+                bat "kubectl apply -f k8s/deployment.yaml"
+                bat "kubectl apply -f k8s/service.yaml"
+                bat "kubectl rollout status deployment/aceest-fitness"
             }
         }
     }
 
     post {
-        always {
-            bat "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest || exit 0"
-            cleanWs()
-        }
         success {
-            echo 'Pipeline succeeded! Deployment complete.'
+            echo 'Pipeline SUCCESS — deployed!'
         }
         failure {
-            echo 'Pipeline failed! Check logs above.'
+            echo 'Pipeline FAILED!'
         }
     }
 }
