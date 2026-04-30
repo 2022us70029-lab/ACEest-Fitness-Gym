@@ -2,17 +2,19 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
+APP_VERSION = os.getenv("VERSION", "1.0")  
 @app.route("/")
 def home():
-    return "Welcome to ACEest Fitness & Gym - Version 1.0"
+ return f"Welcome to ACEest Fitness & Gym - Version {APP_VERSION}"
 
 @app.route("/version")
 def version():
-    return jsonify({"version": "1.0"})
+    return jsonify({"version": APP_VERSION})
 
 @app.route("/members")
 def members():
     return jsonify({
+        "version": APP_VERSION,
         "members": [
             {"id": 1, "name": "Rahul", "plan": "Monthly"},
             {"id": 2, "name": "Anita", "plan": "Quarterly"}
