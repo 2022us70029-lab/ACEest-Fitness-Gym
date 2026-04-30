@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: aceest-fitness
-        image: aceestregistry.azurecr.io/aceest-fitness:v1.0
+        image: 2022us70029/aceest-fitness-gym:latest
         ports:
         - containerPort: 5000
         env:
@@ -61,7 +61,7 @@ spec:
     spec:
       containers:
       - name: aceest-fitness
-        image: your-dockerhub-username/aceest-fitness:latest
+        image: 2022us70029/aceest-fitness-gym:latest
         ports:
         - containerPort: 5000
         env:
